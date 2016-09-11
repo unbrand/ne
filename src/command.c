@@ -691,11 +691,11 @@ char *find_key_strokes(int c) {
    alphabetically ordered list of commands is displayed with the string
    requester. The help finishes when the user escapes. */
 
-void help(char *p) {
+int help(const char *p) {
 	req_list rl = { .ignore_tab=true };
 
 	D(fprintf(stderr,"Help Called with parm %p.\n",p);)
-	int r = 0;
+	int r = 0, last_selected = 0;
 	do {
 		print_message("Help: select Command and press Enter, or F1 or Escape or Escape-Escape");
 		rl.cur_entries = ACTION_COUNT;
@@ -730,6 +730,7 @@ void help(char *p) {
 			}
 
 			assert(r >= 0 && r < ACTION_COUNT);
+			last_selected = r;
 
 			print_message("Help: press Enter, or F1 or Escape or Escape-Escape");
 			char *key_strokes, **tmphelp;
@@ -757,4 +758,63 @@ void help(char *p) {
 		}
 	} while(r >= 0);
 	draw_status_bar();
+	return last_selected;
+}
+
+/* Present a requester of the internal commands, selecting the best match for
+   given prefix. Oddly, it only shows long command names, even if the best
+   match is an abbreviated command name. The assumption is that this would be
+   used primarily by users who are still learning their way through ne's
+   commands. They probably are iffy on the command<->abbreviated command name
+   mapping, too. So though it presents long command names, it returns a
+   pointer to the selected abbreviated command. This helps users learn the
+   short names for commands. */
+   
+char *request_command(const char * const prefix, bool use_prefix) {
+	/* Take some short-cuts in setting up the req_list. We can because
+	   command_names is a perfectly cromulent list for such purposes. */
+	req_list rl = { .ignore_tab=false };
+	rl.cur_entries = ACTION_COUNT;
+	rl.alloc_entries = 0;
+	rl.max_entry_len = MAX_COMMAND_WIDTH;
+	rl.entries = (char **)command_names;
+
+	/* Iterate through the commands, both long and short names, looking for the best match for the prefix. */
+	int best_match_len = -1;
+	int best_match = 0;
+	for (int r=0; r<ACTION_COUNT; r++) {
+		for (int iteration=0; iteration<2; iteration++) {
+			const char *c = iteration ? commands[r].name : commands[r].short_name;
+			const char *m = prefix;
+			int len = 0;
+			while (*c && *m && ascii_up_case[*(unsigned char *)c] == ascii_up_case[*(unsigned char *)m]) {
+				c++;
+				m++;
+				len++;
+			}
+			if (len > best_match_len) {
+				best_match_len = len;
+				best_match = r;
+			}
+		}
+	}
+	while (true ) {
+		print_message("Command: select Command and press Enter, Tab for help, or F1 or Escape or Escape-Escape");
+      best_match = request_strings(&rl, best_match);
+		if (best_match >= 0) {
+			char *result = malloc(strlen(commands[best_match].short_name) + 2);
+			if (!result) {
+				alert(); /* OUT_OF_MEMORY */
+				return NULL;
+			}
+			strcpy(result,commands[best_match].short_name);
+			strcat(result," ");
+			return result;
+		} else if ( best_match == ERROR ) {
+			draw_status_bar();
+			return NULL;
+		} else {
+			best_match = help( commands[ -best_match - 2 ].name ); /* user selected via TAB, so pull up help. */
+		}
+	}
 }

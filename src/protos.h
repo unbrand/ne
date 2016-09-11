@@ -91,9 +91,10 @@ void record_action(char_stream *cs, action a, int64_t c, const char *p, bool ver
 int play_macro(buffer *b, char_stream *cs);
 macro_desc *load_macro(const char *name);
 int execute_macro(buffer *b, const char *name);
-void help(char *p);
+int help(const char *p);
 int cmdcmp(const char *c, const char *m);
 void unload_macros(void);
+char *request_command(const char * const prefix, bool use_prefix);
 
 void optimize_macro(char_stream *cs, bool verbose);
 

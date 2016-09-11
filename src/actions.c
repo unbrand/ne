@@ -1408,7 +1408,7 @@ int do_action(buffer *b, action a, int64_t c, char *p) {
 		return ERROR;
 
 	case EXEC_A:
-		if (p || (p = request_string(b, "Command", b->command_line, false, COMPLETE_FILE, b->encoding == ENC_UTF8 || b->encoding == ENC_ASCII && b->opt.utf8auto))) {
+		if (p || (p = request_string(b, "Command", b->command_line, false, COMPLETE_CMD_OR_FILE, b->encoding == ENC_UTF8 || b->encoding == ENC_ASCII && b->opt.utf8auto))) {
 			free(b->command_line);
 			b->command_line = p;
 			return print_error(execute_command_line(b, p)) ? ERROR : 0;

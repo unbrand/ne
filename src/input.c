@@ -37,10 +37,10 @@
    buffer, but this could change in the future.
 
    completion_type has several possible values:
-    0 COMPLETE_NONE   means no completion,
-    1 COMPLETE_FILE   complete as a filename,
-    2                 complete as a command followed by a filename, (not implemented?)
-    3 COMPLETE_SYNTAX complete as a recognized syntax name.
+    0 COMPLETE_NONE     means no completion,
+    1 COMPLETE_FILE     complete as a filename,
+    2 COMPLETE_CMD_FILE complete as a command followed by a filename, (not implemented?)
+    3 COMPLETE_SYNTAX   complete as a recognized syntax name.
 
    If prefer_utf8 is true, editing an ASCII line inserting an ISO-8859-1 character
    will turn it into an UTF-8 line.
@@ -627,7 +627,7 @@ char *request(const buffer * const b, const char *prompt, const char * const def
 			break;
 
 		case TAB:
-			if (completion_type == COMPLETE_FILE || completion_type == COMPLETE_SYNTAX) {
+			if (completion_type) {
 				bool quoted = false;
 				char *prefix, *completion, *p;
 				if (len && input_buffer[len - 1] == '"') {
@@ -645,8 +645,14 @@ char *request(const buffer * const b, const char *prompt, const char * const def
 					else prefix = input_buffer;
 				}
 
-				if (last_char_completion || completion_type == COMPLETE_SYNTAX) {
-					if (completion_type == COMPLETE_FILE )
+            /* We expand to commands only if the prefix is at the start of the input_buffer.
+               If instead the user has entered a space then we expand to files so that a
+               macro file could be selected. */
+				if (prefix==input_buffer && completion_type | COMPLETE_CMD_OR_FILE) {
+					completion = p = request_command(prefix, true);
+				}
+				else if (last_char_completion || completion_type == COMPLETE_SYNTAX) {
+					if (completion_type | COMPLETE_FILE )
 						completion = p = request_files(prefix, true);
 					else
 						completion = p = request_syntax(prefix, true);
@@ -657,7 +663,7 @@ char *request(const buffer * const b, const char *prompt, const char * const def
 					}
 				}
 				else {
-					if (completion_type == COMPLETE_FILE )
+					if (completion_type | COMPLETE_FILE )
 						completion = p = complete_filename(prefix);
 					else
 						completion = p = request_syntax(prefix, true);
@@ -683,6 +689,10 @@ char *request(const buffer * const b, const char *prompt, const char * const def
 				else if (quoted) strcat(prefix, "\"");
 
 				free(p);
+				reset_window();
+				keep_cursor_on_screen((buffer * const)b);
+				refresh_window((buffer *)b);
+				input_and_prompt_refresh();
 			}
 			break;
 

@@ -862,7 +862,6 @@ char *request_file(const buffer *b, const char *prompt, const char *default_name
 	return NULL;
 }
 
-
 /* Presents to the user a list of the documents currently available.  It
    returns the number of the document selected, or -1 on escape or error. */
 
