@@ -685,6 +685,35 @@ char *find_key_strokes(int c) {
 	return str;
 }
 
+static int help_cmd(int cmd) {
+	req_list rl = { .ignore_tab=false };
+	int s;
+	print_message("Help: press Enter or Tab, or F1 or Escape or Escape-Escape");
+	char *key_strokes, **tmphelp;
+	if ((key_strokes = find_key_strokes(cmd)) && (tmphelp = calloc(commands[cmd].help_len+1, sizeof(char *)))) {
+		tmphelp[0] = (char *)commands[cmd].help[0];
+		tmphelp[1] = (char *)commands[cmd].help[1];
+		tmphelp[2] = key_strokes;
+		memcpy(&tmphelp[3], &commands[cmd].help[2], sizeof(char *) * (commands[cmd].help_len-2)); 
+		rl.cur_entries = commands[cmd].help_len+1;
+		rl.alloc_entries = 0;
+		rl.max_entry_len = ne_columns;
+		rl.entries = tmphelp;
+		s = request_strings(&rl, 0);
+		/* if (s < 0) cmd = s; */
+		free(tmphelp);
+	} else {
+		rl.cur_entries = commands[cmd].help_len;
+		rl.alloc_entries = 0;
+		rl.max_entry_len = ne_columns;
+		rl.entries = (char **)commands[cmd].help;
+		s = request_strings(&rl, 0);
+	}
+	if (key_strokes) free(key_strokes);
+
+	return s;
+}
+
 /* This function helps. The help text relative to the command name pointed to
    by p is displayed (p can also contain arguments). The string *p is not
    free'd by help(). If p is NULL, the
@@ -732,29 +761,9 @@ int help(const char *p) {
 			assert(r >= 0 && r < ACTION_COUNT);
 			last_selected = r;
 
-			print_message("Help: press Enter, or F1 or Escape or Escape-Escape");
-			char *key_strokes, **tmphelp;
-			if ((key_strokes = find_key_strokes(r)) && (tmphelp = calloc(commands[r].help_len+1, sizeof(char *)))) {
-				tmphelp[0] = (char *)commands[r].help[0];
-				tmphelp[1] = (char *)commands[r].help[1];
-				tmphelp[2] = key_strokes;
-				memcpy(&tmphelp[3], &commands[r].help[2], sizeof(char *) * (commands[r].help_len-2)); 
-				rl.cur_entries = commands[r].help_len+1;
-				rl.alloc_entries = 0;
-				rl.max_entry_len = ne_columns;
-				rl.entries = tmphelp;
-				const int s = request_strings(&rl, 0);
-				if (s < 0) r = s;
-				free(tmphelp);
-			} else {
-				rl.cur_entries = commands[r].help_len;
-				rl.alloc_entries = 0;
-				rl.max_entry_len = ne_columns;
-				rl.entries = (char **)commands[r].help;
-				const int s = request_strings(&rl, 0);
-				if (s < 0) r = s;
-			}
-			if (key_strokes) free(key_strokes);
+			int s = help_cmd(r);
+			if (s < -1) s = -s - 2;
+			if (s == ERROR) r = s;
 		}
 	} while(r >= 0);
 	draw_status_bar();
@@ -814,7 +823,8 @@ char *request_command(const char * const prefix, bool use_prefix) {
 			draw_status_bar();
 			return NULL;
 		} else {
-			best_match = help( commands[ -best_match - 2 ].name ); /* user selected via TAB, so pull up help. */
+			best_match = -best_match - 2;
+			help_cmd( best_match ); /* user selected via TAB, so pull up help. */
 		}
 	}
 }
