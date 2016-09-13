@@ -1,6 +1,6 @@
 /* Command table manipulation functions and vectors.
 
-   Copyright (C) 1993-1998 Sebastiano Vigna 
+   Copyright (C) 1993-1998 Sebastiano Vigna
    Copyright (C) 1999-2016 Todd M. Lewis and Sebastiano Vigna
 
    This file is part of ne, the nice editor.
@@ -27,7 +27,7 @@
 
 /* The standard macro descriptor allocation dimension. */
 
-#define STD_MACRO_DESC_SIZE	1024
+#define STD_MACRO_DESC_SIZE   1024
 
 
 /* This structure represents a command. It includes a long and a short name,
@@ -42,17 +42,17 @@ typedef struct {
 } command;
 
 
-#define NO_ARGS					(1<<1)			/* This command must be called without argument. */
-#define ARG_IS_STRING			(1<<2)			/* The argument is a string (default is a number). */
-#define IS_OPTION					(1<<3)			/* The command controls an option,
-															and can be played while exec_only_options is true. */
-#define DO_NOT_RECORD			(1<<4)			/* Never record this command. */
-#define EMPTY_STRING_OK			(1<<5)			/* This command can accept an empty string ("") as an argument. */
+#define NO_ARGS               (1<<1)         /* This command must be called without argument. */
+#define ARG_IS_STRING         (1<<2)         /* The argument is a string (default is a number). */
+#define IS_OPTION             (1<<3)         /* The command controls an option,
+                                                and can be played while exec_only_options is true. */
+#define DO_NOT_RECORD         (1<<4)         /* Never record this command. */
+#define EMPTY_STRING_OK       (1<<5)         /* This command can accept an empty string ("") as an argument. */
 
 
 /* These macros makes the following vector more readable. */
 
-#define HELP_LEN(x)			(sizeof(x ## _HELP) / sizeof(char *) - 1)
+#define HELP_LEN(x)  (sizeof(x ## _HELP) / sizeof(char *) - 1)
 #define NAHL(x) x ## _NAME, x ##_ABBREV, x ## _HELP, HELP_LEN(x)
 
 /* This is the command vector. Note that the command names come from names.h,
@@ -197,7 +197,6 @@ static const command commands[ACTION_COUNT] = {
 	{ NAHL(VERBOSEMACROS ),                           IS_OPTION                                   },
 	{ NAHL(VISUALBELL    ),                           IS_OPTION                                   },
 	{ NAHL(WORDWRAP      ),                           IS_OPTION                                   },
-
 };
 
 
@@ -383,7 +382,7 @@ void record_action(char_stream *cs, action a, int64_t c, const char *p, bool ver
 	char t[MAX_INT_LEN + 2];
 
 	/* NOP_A is special; it may actually be a comment.
-		Blank lines and real NOPs are recorded as blank lines. */
+	   Blank lines and real NOPs are recorded as blank lines. */
 	if (a == NOP_A) {
 		if (p && *p) add_to_stream(cs, p, strlen(p) + 1);
 		else add_to_stream(cs, "", 1);
@@ -426,7 +425,7 @@ static int insertchar_val(const char *p) {
 
 	action a;
 	if (((a = hash_table[h]) && !cmdcmp(commands[--a].name, cmd)
-		|| (a = short_hash_table[h]) && !cmdcmp(commands[--a].short_name, cmd))	&& a == INSERTCHAR_A) {
+		|| (a = short_hash_table[h]) && !cmdcmp(commands[--a].short_name, cmd)) && a == INSERTCHAR_A) {
 
 		while(isasciispace(*p)) p++;
 		h = strtol(p, (char **)&cmd, 0);
@@ -519,7 +518,7 @@ int play_macro(buffer *b, char_stream *cs) {
 
 	b->executing_macro = 1;
 	int error = OK;
-	while(!stop && p - stream < len) {	
+	while(!stop && p - stream < len) {
 #ifdef NE_TEST
 		fprintf(stderr, "%s\n", p); /* During tests, we output to stderr the current command. */
 #endif
@@ -543,14 +542,12 @@ int play_macro(buffer *b, char_stream *cs) {
 }
 
 
-
 /* Loads a macro, and puts it in the global macro hash table.  file_part is
    applied to the name argument before storing it and hashing it.  Note that if
    the macro can't be opened, we retry prefixing its name with the preferences
    directory name (~/.ne/). Thus, for instance, all autopreferences file whose
    name does not conflict with internal commands can be executed transparently
    just by typing their name. */
-
 
 macro_desc *load_macro(const char *name) {
 
@@ -659,13 +656,13 @@ char *find_key_strokes(int c) {
 	for(int i = 0; i < NUM_KEYS; i++) {
 		if (key_binding[i]) {
 			if (((!strncasecmp(commands[c].short_name,key_binding[i],strlen(commands[c].short_name))) &&
-				  ((!key_binding[i][strlen(commands[c].short_name)]		) || 
-					(key_binding[i][strlen(commands[c].short_name)] == ' ')
+				  ((!key_binding[i][strlen(commands[c].short_name)]      ) ||
+				   (key_binding[i][strlen(commands[c].short_name)] == ' ')
 				  )
-				 ) || 
+				 ) ||
 				 ((!strncasecmp(commands[c].name,key_binding[i],strlen(commands[c].name))) &&
-				  ((!key_binding[i][strlen(commands[c].name)]		) ||
-					(key_binding[i][strlen(commands[c].name)] == ' ')
+				  ((!key_binding[i][strlen(commands[c].name)]      ) ||
+				   (key_binding[i][strlen(commands[c].name)] == ' ')
 				  )
 				 )
 				) {
@@ -694,7 +691,7 @@ static int help_cmd(int cmd) {
 		tmphelp[0] = (char *)commands[cmd].help[0];
 		tmphelp[1] = (char *)commands[cmd].help[1];
 		tmphelp[2] = key_strokes;
-		memcpy(&tmphelp[3], &commands[cmd].help[2], sizeof(char *) * (commands[cmd].help_len-2)); 
+		memcpy(&tmphelp[3], &commands[cmd].help[2], sizeof(char *) * (commands[cmd].help_len-2));
 		rl.cur_entries = commands[cmd].help_len+1;
 		rl.alloc_entries = 0;
 		rl.max_entry_len = ne_columns;
@@ -776,7 +773,7 @@ int help(const char *p) {
    mapping, too. So though it presents long command names, it returns a
    pointer to the selected abbreviated command. This helps users learn the
    short names for commands. */
-   
+
 char *request_command(const char * const prefix, bool use_prefix) {
 	/* Take some short-cuts in setting up the req_list. We can because
 	   command_names is a perfectly cromulent list for such purposes. */
@@ -808,7 +805,7 @@ char *request_command(const char * const prefix, bool use_prefix) {
 	rl.fuzz_len = best_match_len;
 	while (true ) {
 		print_message("Command: select Command and press Enter, Tab for help, or F1 or Escape or Escape-Escape");
-      best_match = request_strings(&rl, best_match);
+		best_match = request_strings(&rl, best_match);
 		if (best_match >= 0) {
 			char *result = malloc(strlen(commands[best_match].short_name) + 2);
 			if (!result) {
