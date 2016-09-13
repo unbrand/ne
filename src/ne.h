@@ -166,6 +166,7 @@ typedef struct {
 	int cur_entries;
 	int alloc_entries;
 	int max_entry_len;
+	int fuzz_len;         /* Length of matching substring */ 
 	char **entries;
 	int *orig_order;      /* maps from current order to original order when allow_reorder is true. */
 	

@@ -39,7 +39,7 @@
 
 static req_list rl, *rl0; /* working and original * req_list */
 
-static int x, y, page, max_names_per_line, max_names_per_col, names_per_page, fuzz_len;
+static int x, y, page, max_names_per_line, max_names_per_col, names_per_page;
 static bool prune;
 
 /* ne traditionally has displayed request entries by row, i.e.
@@ -307,15 +307,15 @@ static void fuzz_back() {
 	const char * const p0 = rl.entries[PXY2N(page,x,y)];
 	int n1 = n0;
 
-	if (fuzz_len == 0) return;
+	if (rl.fuzz_len == 0) return;
 	if (prune) {
 		if (orig_entries == rl0->cur_entries) return;
 		while (rl.cur_entries == orig_entries) {
-			fuzz_len = max(0,fuzz_len-1);
+			rl.fuzz_len = max(0,rl.fuzz_len-1);
 			int i;
 			for (int j = n1 = i = 0; j < rl0->cur_entries; j++) {
 				char * const p1 = rl0->entries[j];
-				if ( ! strncasecmp(p0, p1, fuzz_len) ) {
+				if ( ! strncasecmp(p0, p1, rl.fuzz_len) ) {
 					if (p1 == p0) n1 = i;
 					rl.entries[i++] = p1;
 				}
@@ -323,7 +323,7 @@ static void fuzz_back() {
 			rl.cur_entries = i;
 		}
 	} else {
-		fuzz_len--;
+		rl.fuzz_len--;
 
 		int shiftsize = rl.alloc_entries - rl.cur_entries;
 
@@ -340,7 +340,7 @@ static void fuzz_back() {
 					if (n0shifted == rlsrc) n1 = rldest;  /* it was our marked entry */
 					rl.entries[rldest++] = rl.entries[rlsrc++];
 
-				} else if ( ! strncasecmp(p0, rl0->entries[rl0src], fuzz_len) ) {
+				} else if ( ! strncasecmp(p0, rl0->entries[rl0src], rl.fuzz_len) ) {
 					/* Wasn't in our old list due to prior purning, but should be */
 					rl.entries[rldest++] = rl0->entries[rl0src];
 				}
@@ -353,9 +353,9 @@ static void fuzz_back() {
 }
 
 /* given a localised_up_case character c, find the next entry that
-   matches our current fuzz_len chars plus this new character. The
+   matches our current rl.fuzz_len chars plus this new character. The
    behavior is quite different depending on 'prune'. If true, we keep
-   only entries that matches our current fuzz_len prefix plus this
+   only entries that matches our current rl.fuzz_len prefix plus this
    additional character. If false, we keep all the current entries,
    and only (possibly) change the selected one.  Note that relative
    order of rl.entries[] is preserved. */
@@ -364,14 +364,14 @@ static void fuzz_forward(const int c) {
 	const int n0 = PXY2N(page,x,y);
 	const char * const p0 = rl.entries[n0];
 
-	assert(fuzz_len >= 0);
+	assert(rl.fuzz_len >= 0);
 
 	if (prune) {
 		int i = 0, n1 = 0;
 		for (int j = 0; j < rl.cur_entries; j++) {
 			char * const p1 = rl.entries[j];
-			const int cmp = strncasecmp(p0, p1, fuzz_len);
-			if (! cmp && strlen(p1) > fuzz_len && localised_up_case[(unsigned char)p1[fuzz_len]] == c) {
+			const int cmp = strncasecmp(p0, p1, rl.fuzz_len);
+			if (! cmp && strlen(p1) > rl.fuzz_len && localised_up_case[(unsigned char)p1[rl.fuzz_len]] == c) {
 				if (p1 == p0)
 					n1 = i;
 				rl.entries[i++] = p1;
@@ -379,7 +379,7 @@ static void fuzz_forward(const int c) {
 		}
 		if (i) {
 			rl.cur_entries = i;
-			fuzz_len = common_prefix_len(&rl);
+			rl.fuzz_len = common_prefix_len(&rl);
 			page = -1; /* causes normalize() to call print_strings() */
 			normalize(n1);
 		}
@@ -387,9 +387,9 @@ static void fuzz_forward(const int c) {
 		/* find the next matching string, possibly wrapping around */
 		for (int n=n0, i=rl.cur_entries; i; i--, n=(n+1)%rl.cur_entries) {
 			char * const p1 = rl.entries[n];
-			const int cmp = strncasecmp(p0, p1, fuzz_len);
-			if (!cmp && strlen(p1) > fuzz_len && localised_up_case[(unsigned char)p1[fuzz_len]] == c) {
-				fuzz_len++;
+			const int cmp = strncasecmp(p0, p1, rl.fuzz_len);
+			if (!cmp && strlen(p1) > rl.fuzz_len && localised_up_case[(unsigned char)p1[rl.fuzz_len]] == c) {
+				rl.fuzz_len++;
 				page = -1;
 				normalize(n);
 				break;
@@ -419,7 +419,7 @@ static int request_strings_init(req_list *rlp0) {
 	rl.reordered = rl0->reordered;
 	rl.cur_chars = rl.alloc_chars = 0;
 	rl.chars = NULL;
-	fuzz_len = common_prefix_len(&rl);
+	rl.fuzz_len = rl0->fuzz_len ? rl0->fuzz_len : common_prefix_len(&rl);
 	prune = false;
 	return rl.cur_entries;
 }
@@ -457,7 +457,7 @@ int request_strings(req_list *rlp0, int n) {
 
 	int ne_lines0 = 0, ne_columns0 = 0;
 	bool reordered = false;
-	max_names_per_line = max_names_per_col = x = y = page = fuzz_len = 0;
+	max_names_per_line = max_names_per_col = x = y = page;
 	if ( ! request_strings_init(rlp0) ) return ERROR;
 
 	const int dx = rl.max_entry_len + 1 + (rl.suffix ? 1 : 0);
@@ -482,11 +482,11 @@ int request_strings(req_list *rlp0, int n) {
 
 		n = PXY2N(page,x,y);
 
-		assert(fuzz_len >= 0);
+		assert(rl.fuzz_len >= 0);
 
-		fuzz_len = min(fuzz_len, strlen(rl.entries[n]));
+		rl.fuzz_len = min(rl.fuzz_len, strlen(rl.entries[n]));
 
-		move_cursor(y, x * dx + fuzz_len);
+		move_cursor(y, x * dx + rl.fuzz_len);
 
 		int c;
 		input_class ic;
@@ -978,7 +978,7 @@ int req_list_init( req_list * const rl, int cmpfnc(const char *, const char *), 
 	rl->allow_reorder = allow_reorder;
 	rl->ignore_tab = false;
 	rl->suffix = suffix;
-	rl->cur_entries = rl->alloc_entries = rl->max_entry_len = 0;
+	rl->cur_entries = rl->alloc_entries = rl->max_entry_len = rl->fuzz_len = 0;
 	rl->cur_chars = rl->alloc_chars = 0;
 	if (rl->entries = malloc(sizeof(char *) * DEF_ENTRIES_ALLOC_SIZE)) {
 		if (rl->chars = malloc(sizeof(char) * DEF_CHARS_ALLOC_SIZE)) {

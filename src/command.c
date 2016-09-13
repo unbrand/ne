@@ -700,7 +700,6 @@ static int help_cmd(int cmd) {
 		rl.max_entry_len = ne_columns;
 		rl.entries = tmphelp;
 		s = request_strings(&rl, 0);
-		/* if (s < 0) cmd = s; */
 		free(tmphelp);
 	} else {
 		rl.cur_entries = commands[cmd].help_len;
@@ -762,7 +761,6 @@ int help(const char *p) {
 			last_selected = r;
 
 			int s = help_cmd(r);
-			if (s < -1) s = -s - 2;
 			if (s == ERROR) r = s;
 		}
 	} while(r >= 0);
@@ -791,9 +789,9 @@ char *request_command(const char * const prefix, bool use_prefix) {
 	/* Iterate through the commands, both long and short names, looking for the best match for the prefix. */
 	int best_match_len = -1;
 	int best_match = 0;
-	for (int r=0; r<ACTION_COUNT; r++) {
-		for (int iteration=0; iteration<2; iteration++) {
-			const char *c = iteration ? commands[r].name : commands[r].short_name;
+	for (int iteration=0; iteration<2; iteration++) {
+		for (int r=0; r<ACTION_COUNT; r++) {
+			const char *c = iteration ? commands[r].short_name : commands[r].name;
 			const char *m = prefix;
 			int len = 0;
 			while (*c && *m && ascii_up_case[*(unsigned char *)c] == ascii_up_case[*(unsigned char *)m]) {
@@ -807,6 +805,7 @@ char *request_command(const char * const prefix, bool use_prefix) {
 			}
 		}
 	}
+	rl.fuzz_len = best_match_len;
 	while (true ) {
 		print_message("Command: select Command and press Enter, Tab for help, or F1 or Escape or Escape-Escape");
       best_match = request_strings(&rl, best_match);
@@ -818,6 +817,7 @@ char *request_command(const char * const prefix, bool use_prefix) {
 			}
 			strcpy(result,commands[best_match].short_name);
 			strcat(result," ");
+			draw_status_bar();
 			return result;
 		} else if ( best_match == ERROR ) {
 			draw_status_bar();
