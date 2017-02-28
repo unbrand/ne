@@ -1,7 +1,7 @@
 /* Navigation functions.
 
    Copyright (C) 1993-1998 Sebastiano Vigna
-   Copyright (C) 1999-2016 Todd M. Lewis and Sebastiano Vigna
+   Copyright (C) 1999-2017 Todd M. Lewis and Sebastiano Vigna
 
    This file is part of ne, the nice editor.
 
@@ -791,7 +791,7 @@ void move_to_eol(buffer * const b) {
 			b->cur_x = total_width - b->win_x;
 			b->cur_pos = ld->line_len;
 			b->cur_char = calc_char_len(ld, b->encoding);
-			if (t != b->win_x) update_window(b);
+			if (t != b->win_x && b == cur_buffer) update_window(b);
 			return;
 		}
 	}
