@@ -948,7 +948,7 @@ int do_action(buffer *b, action a, int64_t c, char *p) {
 				if (a == REPLACEALL_A) start_undo_chain(b);
 
 				while(!stop &&
-						!(error = (b->last_was_regexp ? find_regexp : find)(b, NULL, !first_search && a != REPLACEALL_A && c != 'A' && c != 'Y', perform_wrap > 0))) {
+						!(error = (b->last_was_regexp ? find_regexp : find)(b, NULL, !first_search && a != REPLACEALL_A && c != 'A' && c != 'Y', false))) {
 
 					if (c != 'A' && a != REPLACEALL_A && a != REPLACEONCE_A) {
 						refresh_window(b);
@@ -1000,7 +1000,7 @@ int do_action(buffer *b, action a, int64_t c, char *p) {
 				if (a == REPLACEALL_A || c == 'A') end_undo_chain(b);
 
 				if (num_replace) {
-					snprintf(msg, MAX_MESSAGE_SIZE, "%" PRId64 " replacement%s made. (RepeatLast to wrap.)", num_replace, num_replace > 1 ? "s" : "");
+					snprintf(msg, MAX_MESSAGE_SIZE, "%" PRId64 " replacement%s made.%s", num_replace, num_replace > 1 ? "s" : "", error == NOT_FOUND ? " (RepeatLast to wrap.)" :"");
 					print_message(msg);
 				}
 				if (stop) error = STOPPED;
