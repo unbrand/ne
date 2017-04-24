@@ -81,6 +81,8 @@ const unsigned char ascii_up_case[256] = {
 	0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 };
 
+
+
 /* Performs a search for the given pattern with a simplified Boyer-Moore
    algorithm starting at the given position, in the given direction, skipping a
    possible match at the current cursor position if skip_first is true. The
@@ -145,7 +147,7 @@ int find(buffer * const b, const char *pattern, const bool skip_first, bool wrap
 							}
 						if (i == m) {
 							goto_line_pos(b, y, (p - ld->line) - m + 1);
-                                                        return OK;
+							return OK;
 						}
 					}
 				}
@@ -153,6 +155,12 @@ int find(buffer * const b, const char *pattern, const bool skip_first, bool wrap
 
 			ld = (line_desc *)ld->ld_node.next;
 			if (ld->ld_node.next) p = ld->line + m-1;
+			else if (wrap_once) {
+				wrap_once = false;
+				ld = b->top_line_desc;
+				p = ld->line + m-1;
+				y = -1;
+			}
 			y++;
 		}
 	}
@@ -193,38 +201,19 @@ int find(buffer * const b, const char *pattern, const bool skip_first, bool wrap
 
 			ld = (line_desc *)ld->ld_node.prev;
 			if (ld->ld_node.prev) p = ld->line + ld->line_len - m;
+			else if (wrap_once) {
+				wrap_once = false;
+				ld = (line_desc *)b->line_desc_list.tail_pred;
+				p = ld->line + ld->line_len - m;
+				y = b->num_lines;
+			}
 			y--;
 		}
 	}
 
-	if (stop) return STOPPED;
-
-	/* We're in the NOT_FOUND scenario. Check for need to wrap: are we told to wrap? If so, wrap! */
-	if (wrap_once)
-	{
-		/* Before we wrap, push this cursor location, then pop if search string not found. If we didn't do this
-		    push/pop we'd have to replicate the search functionality here.*/
-		int orig_pos, orig_line;
-		orig_pos = b->cur_pos;
-		orig_line = b->cur_line;
-
-		if (!b->opt.search_back)
-			move_to_sof(b);  /* if we're searching forward, move the cursor to the top of the file */
-		else
-			move_to_bof(b); /* if we're searching backward, move the cursor to the bottom of the file */
-
-		// perform the find again, but don't wrap again!
-		int find_result = find(b, pattern, false, false);
-
-		/* if we didn't find the string on this second "pass", pop the cursor location */
-		if (NOT_FOUND == find_result)
-			goto_line_pos(b, orig_line, orig_pos);
-
-		return  find_result;
-	}
-
-	return NOT_FOUND;
+	return stop ? STOPPED : NOT_FOUND;
 }
+
 
 
 /* Replaces n characters with the given string at the current cursor position,
@@ -467,6 +456,11 @@ int find_regexp(buffer * const b, const char *regex, const bool skip_first, bool
 			ld = (line_desc *)ld->ld_node.next;
 			start_pos = 0;
 			y++;
+			if (wrap_once && y == b->num_lines) {
+				wrap_once = false;
+				ld = b->top_line_desc;
+				y = 0;
+			}
 		}
 	}
 	else {
@@ -486,37 +480,17 @@ int find_regexp(buffer * const b, const char *regex, const bool skip_first, bool
 
 			ld = (line_desc *)ld->ld_node.prev;
 			if (ld->ld_node.prev) start_pos = ld->line_len;
+			else if (wrap_once) {
+				wrap_once = false;
+				ld = (line_desc *)b->line_desc_list.tail_pred;
+				start_pos = ld->line_len;
+				y = b->num_lines;
+			}
 			y--;
 		}
 	}
 
-	if (stop) return STOPPED;
-
-	/* We're in the NOT_FOUND scenario. Check for need to wrap: are we told to wrap? If so, wrap! */
-	if (wrap_once)
-	{
-		/* Before we wrap, push this cursor location, then pop if search string not found. If we didn't do this
-		    push/pop we'd have to replicate the search functionality here.*/
-		int orig_pos, orig_line;
-		orig_pos = b->cur_pos;
-		orig_line = b->cur_line;
-
-		if (!b->opt.search_back)
-			move_to_sof(b);  /* if we're searching forward, move the cursor to the top of the file */
-		else
-			move_to_bof(b); /* if we're searching backward, move the cursor to the bottom of the file */
-
-		// perform the find again, but don't wrap again!
-		int find_result = find_regexp(b, regex, false, false);
-
-		/* if we didn't find the string on this second "pass", pop the cursor location */
-		if (NOT_FOUND == find_result)
-			goto_line_pos(b, orig_line, orig_pos);
-
-		return  find_result;
-	}
-
-	return NOT_FOUND;
+	return stop ? STOPPED : NOT_FOUND;
 }
 
 
