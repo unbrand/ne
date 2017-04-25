@@ -128,8 +128,9 @@ int find(buffer * const b, const char *pattern, const bool skip_first, bool wrap
 
 		char * p = ld->line + b->cur_pos + m - 1 + (skip_first ? 1 : 0);
 		const unsigned char first_char = CONV((unsigned char)pattern[m - 1]);
+		int64_t wrap_lines_left = b->num_lines + 1;
 
-		while(y < b->num_lines && !stop) {
+		while(y < b->num_lines && !stop && wrap_lines_left--) {
 
 			assert(ld->ld_node.next != NULL);
 
@@ -173,8 +174,9 @@ int find(buffer * const b, const char *pattern, const bool skip_first, bool wrap
 
 		char * p = ld->line + (b->cur_pos > ld->line_len - m ? ld->line_len - m : b->cur_pos + (skip_first ? -1 : 0));
 		const unsigned char first_char = CONV((unsigned char)pattern[0]);
+		int64_t wrap_lines_left = b->num_lines + 1;
 
-		while(y >= 0 && !stop) {
+		while(y >= 0 && !stop && wrap_lines_left--) {
 
 			assert(ld->ld_node.prev != NULL);
 
@@ -442,8 +444,9 @@ int find_regexp(buffer * const b, const char *regex, const bool skip_first, bool
 	if (! b->opt.search_back) {
 
 		int64_t start_pos = b->cur_pos + (skip_first ? 1 : 0);
+		int64_t wrap_lines_left = b->num_lines + 1;
 
-		while(y < b->num_lines && !stop) {
+		while(y < b->num_lines && !stop && wrap_lines_left--) {
 			assert(ld->ld_node.next != NULL);
 
 			int64_t pos;
@@ -466,8 +469,9 @@ int find_regexp(buffer * const b, const char *regex, const bool skip_first, bool
 	else {
 
 		int64_t start_pos = b->cur_pos + (skip_first ? -1 : 0);
+		int64_t wrap_lines_left = b->num_lines + 1;
 
-		while(y >= 0 && !stop) {
+		while(y >= 0 && !stop && wrap_lines_left--) {
 
 			assert(ld->ld_node.prev != NULL);
 
