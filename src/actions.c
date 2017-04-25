@@ -1069,7 +1069,7 @@ int do_action(buffer *b, action a, int64_t c, char *p) {
 		if (stop) error = STOPPED;
 		if (error == STOPPED) reset_window();
 		if (error == NOT_FOUND) perform_wrap = 2;
-		return error;
+		return num_replace && error ? ERROR : error;
 
 	case MATCHBRACKET_A:
 		return print_error(match_bracket(b)) ? ERROR : 0;
